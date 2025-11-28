@@ -1,13 +1,4 @@
-export interface Song {
-  id: number;
-  title: string;
-  artist: string;
-  album: string;
-  audioUrl: string;
-  coverImage: string;
-}
-
-export const tamilSongs: Song[] = [
+const tamilSongs = [
   {
     id: 1,
     title: "Kannalane",
@@ -89,3 +80,5 @@ export const tamilSongs: Song[] = [
     coverImage: "/images/vaseegara.jpg"
   }
 ];
+
+window.tamilSongs = tamilSongs;
