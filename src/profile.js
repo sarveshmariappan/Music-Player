@@ -26,7 +26,7 @@ class ProfileManager {
 
     try {
       this.loading = true;
-      const { data, error } = await supabase
+      const { data, error } = await window.supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
@@ -49,7 +49,7 @@ class ProfileManager {
     if (!this.profile) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await window.supabase
         .from('profiles')
         .update({ full_name: fullName, updated_at: new Date().toISOString() })
         .eq('id', this.profile.id);

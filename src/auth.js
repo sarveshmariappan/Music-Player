@@ -8,16 +8,12 @@ class AuthManager {
   }
 
   init() {
-    const token = localStorage.getItem('supabase.auth.token');
-    const userData = localStorage.getItem('supabase.auth.user');
-
-    if (token && userData) {
-      this.session = { user: JSON.parse(userData) };
-      this.user = JSON.parse(userData);
-    }
-
-    this.loading = false;
-    this.notifyListeners();
+    window.supabase.auth.onAuthStateChange((event, session) => {
+      this.session = session;
+      this.user = session?.user || null;
+      this.loading = false;
+      this.notifyListeners();
+    });
   }
 
   subscribe(callback) {
@@ -33,16 +29,7 @@ class AuthManager {
 
   async signIn(email, password) {
     try {
-      const { error } = await supabase.auth().signInWithPassword({ email, password });
-
-      if (!error) {
-        const token = localStorage.getItem('supabase.auth.token');
-        const userData = localStorage.getItem('supabase.auth.user');
-        this.session = { user: JSON.parse(userData) };
-        this.user = JSON.parse(userData);
-        this.notifyListeners();
-      }
-
+      const { error } = await window.supabase.auth.signInWithPassword({ email, password });
       return { error };
     } catch (error) {
       return { error };
@@ -51,16 +38,18 @@ class AuthManager {
 
   async signUp(email, password, fullName) {
     try {
-      const { data, error } = await supabase.auth().signUp({ email, password });
+      const { data, error } = await window.supabase.auth.signUp({ email, password });
 
       if (error) return { error };
 
       if (data.user) {
-        await supabase.from('profiles').insert({
+        await window.supabase.from('profiles').insert({
           id: data.user.id,
           email,
           full_name: fullName
         });
+
+        await window.supabase.auth.signInWithPassword({ email, password });
       }
 
       return { error: null };
@@ -70,10 +59,7 @@ class AuthManager {
   }
 
   async signOut() {
-    await supabase.auth().signOut();
-    this.user = null;
-    this.session = null;
-    this.notifyListeners();
+    await window.supabase.auth.signOut();
   }
 
   isAuthenticated() {
