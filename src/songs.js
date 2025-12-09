@@ -1,4 +1,4 @@
-const tamilSongs = [
+export const tamilSongs = [
   {
     id: 1,
     title: "Kannalane",
