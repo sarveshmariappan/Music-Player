@@ -8,90 +8,39 @@ import {
   VolumeX,
   Music,
 } from 'lucide-react';
+import { getAllSongs } from '../lib/songs';
+import { getSongUrl, getImageUrl } from '../lib/storage';
 import './MusicPlayer.css';
 
-const SONGS = [
-  {
-    id: 1,
-    title: 'Kannalane',
-    artist: 'A.R. Rahman',
-    album: 'Bombay',
-    duration: 240,
-  },
-  {
-    id: 2,
-    title: 'Munbe Vaa',
-    artist: 'A.R. Rahman',
-    album: 'Sillunu Oru Kaadhal',
-    duration: 265,
-  },
-  {
-    id: 3,
-    title: 'Kadhal Rojave',
-    artist: 'A.R. Rahman',
-    album: 'Roja',
-    duration: 280,
-  },
-  {
-    id: 4,
-    title: 'Vennilave',
-    artist: 'Ilaiyaraaja',
-    album: 'Minsara Kanavu',
-    duration: 255,
-  },
-  {
-    id: 5,
-    title: 'Uyire',
-    artist: 'A.R. Rahman',
-    album: 'Bombay',
-    duration: 295,
-  },
-  {
-    id: 6,
-    title: 'Why This Kolaveri Di',
-    artist: 'Anirudh Ravichander',
-    album: '3',
-    duration: 195,
-  },
-  {
-    id: 7,
-    title: 'Thalli Pogathey',
-    artist: 'A.R. Rahman',
-    album: 'Achcham Yenbadhu Madamaiyada',
-    duration: 240,
-  },
-  {
-    id: 8,
-    title: 'Rowdy Baby',
-    artist: 'Yuvan Shankar Raja',
-    album: 'Maari 2',
-    duration: 215,
-  },
-  {
-    id: 9,
-    title: 'Nenjukkul Peidhidum',
-    artist: 'Yuvan Shankar Raja',
-    album: 'Vaaranam Aayiram',
-    duration: 305,
-  },
-  {
-    id: 10,
-    title: 'Vaseegara',
-    artist: 'Harris Jayaraj',
-    album: 'Minnale',
-    duration: 230,
-  },
-];
-
 export default function MusicPlayer() {
+  const [songs, setSongs] = useState([]);
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const audioRef = useRef(null);
 
-  const currentSong = SONGS[currentSongIndex];
+  useEffect(() => {
+    loadSongs();
+  }, []);
+
+  const loadSongs = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await getAllSongs();
+      if (error) throw new Error(error);
+      setSongs(data || []);
+    } catch (err) {
+      console.error('Error loading songs:', err);
+      setSongs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentSong = songs[currentSongIndex];
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -130,13 +79,13 @@ export default function MusicPlayer() {
   };
 
   const handlePrevious = () => {
-    setCurrentSongIndex((prev) => (prev - 1 + SONGS.length) % SONGS.length);
+    setCurrentSongIndex((prev) => (prev - 1 + songs.length) % songs.length);
     setCurrentTime(0);
     setIsPlaying(true);
   };
 
   const handleNext = () => {
-    setCurrentSongIndex((prev) => (prev + 1) % SONGS.length);
+    setCurrentSongIndex((prev) => (prev + 1) % songs.length);
     setCurrentTime(0);
     setIsPlaying(true);
   };
@@ -171,6 +120,30 @@ export default function MusicPlayer() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  if (loading) {
+    return (
+      <div className="music-player-container">
+        <div className="flex-center" style={{ minHeight: '400px' }}>
+          <div className="spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentSong) {
+    return (
+      <div className="music-player-container">
+        <div className="no-songs">
+          <Music size={64} />
+          <h3>No Songs Yet</h3>
+          <p>Upload songs from the profile tab to get started</p>
+        </div>
+      </div>
+    );
+  }
+
+  const audioUrl = getSongUrl(currentSong.audio_url);
+  const imageUrl = currentSong.image_url ? getImageUrl(currentSong.image_url) : null;
   const progress = (currentTime / currentSong.duration) * 100;
 
   return (
@@ -178,12 +151,17 @@ export default function MusicPlayer() {
       <audio
         ref={audioRef}
         volume={isMuted ? 0 : volume / 100}
-        src={`data:audio/mpeg;base64,`}
+        src={audioUrl}
+        crossOrigin="anonymous"
       />
 
       <div className="player-main">
         <div className="album-art">
-          <Music size={80} />
+          {imageUrl ? (
+            <img src={imageUrl} alt={currentSong.title} />
+          ) : (
+            <Music size={80} />
+          )}
         </div>
 
         <div className="song-info">
@@ -237,9 +215,9 @@ export default function MusicPlayer() {
       </div>
 
       <div className="playlist">
-        <h3>Playlist</h3>
+        <h3>Playlist ({songs.length})</h3>
         <div className="playlist-items">
-          {SONGS.map((song, index) => (
+          {songs.map((song, index) => (
             <div
               key={song.id}
               className={`playlist-item ${
